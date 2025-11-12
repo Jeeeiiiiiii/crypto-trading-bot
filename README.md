@@ -1,9 +1,15 @@
 # crypto-trading-bot
-A browser-based crypto scalping bot with **REAL FEE CALCULATIONS** and support for **LOW-FEE COINS**. For educational use only.
+A browser-based scalping bot for **STOCKS and CRYPTO** with **REAL FEE CALCULATIONS** and support for **LOW-FEE COINS**. For educational use only.
 
 ![image](https://github.com/user-attachments/assets/19bd08c6-3de3-482e-b108-f9fdf688ce91)
 
-I asked AI to build a crypto trading bot — and it actually worked.
+I asked AI to build a trading bot — and it actually worked.
+
+## 🆕 Now Supports Stocks AND Crypto!
+
+The bot now works on both:
+- **Stocks**: https://app.webull.com/stocks (Default configuration)
+- **Crypto**: https://app.webull.com/crypto (Uncomment crypto config in code)
 
 > In just **36 hours**, it executed **7,328 simulated trades**
 > with a **40.60% win rate** and generated **$566.07 in profit**
@@ -35,11 +41,18 @@ This updated bot now:
 
 ## 🚀 Try It Yourself
 
-### Step 1: Choose Your Coin
+### Step 1: Choose Your Asset
 
-The bot now supports multiple low-fee coins. **Solana (SOL) is recommended** as the default.
+**For Stocks Trading (Default - No Code Changes Needed):**
+1. The bot is pre-configured for stocks trading
+2. No fee calculations (most platforms offer commission-free stock trading)
+3. Perfect for testing the strategy without fee concerns
 
-**Supported Coins:**
+**For Crypto Trading (Requires Code Edit):**
+
+The bot supports multiple low-fee coins. **Solana (SOL) is recommended** for crypto.
+
+**Supported Crypto Coins:**
 - **Solana (SOL)** - Extremely low fees, high liquidity ✅ **RECOMMENDED**
 - **XRP** - Ultra-low blockchain fees, fast transactions
 - **Stellar (XLM)** - Lowest fees available
@@ -49,17 +62,35 @@ The bot now supports multiple low-fee coins. **Solana (SOL) is recommended** as 
 - **Tron (TRX)** - Very low fees, high throughput
 - **Ethereum (ETH)** - Original (NOT recommended due to high fees)
 
-To switch coins, edit the configuration section in `crypto-trading-bot.js` (lines 31-132) and uncomment your preferred coin.
+To switch to crypto, edit the configuration section in `crypto-trading-bot.js` (lines 38-162):
+- Comment out the STOCK configuration (lines 41-48)
+- Uncomment your preferred crypto coin configuration
 
 ### Step 2: Run the Bot
 
+**For Stocks:**
 1. Go to [https://app.webull.com/stocks](https://app.webull.com/stocks)
+2. Open the chart for any stock (e.g., **AAPL**, **TSLA**, etc.)
+3. Open your browser's **Dev Console** (F12 or Cmd+Option+I)
+4. Paste in the script from `crypto-trading-bot.js`
+5. Keep the tab **active** — the bot uses real-time DOM updates
+
+**For Crypto:**
+1. Go to [https://app.webull.com/crypto](https://app.webull.com/crypto)
 2. Open the chart for your chosen coin (e.g., **SOL/USD**)
 3. Open your browser's **Dev Console** (F12 or Cmd+Option+I)
 4. Paste in the script from `crypto-trading-bot.js`
 5. Keep the tab **active** — the bot uses real-time DOM updates
 
 > 🔔 You must keep the browser and tab open or it will stop receiving price updates.
+
+### ⚠️ XPath Troubleshooting
+
+If you see "ERROR: Price element not found. Check XPath", the page structure may have changed. The XPath selector is configured differently for stocks vs crypto:
+- **Stocks**: `//*[@id="app"]/section/section/section/main/div/div[2]/div[1]/div[2]/div/div/span[2]`
+- **Crypto**: `//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]`
+
+If you encounter issues, you can inspect the price element in Chrome DevTools and update the `xpath` value in the configuration.
 
 ---
 

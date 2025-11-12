@@ -6,7 +6,9 @@
  * It creates a draggable UI overlay, monitors price changes, implements a tick-scalping
  * strategy, and tracks simulated trading performance.
  *
- * Target Platform (Example): https://app.webull.com/stocks (Ethereum chart)
+ * Target Platforms:
+ * - Stocks: https://app.webull.com/stocks (Default configuration)
+ * - Crypto: https://app.webull.com/crypto (Change COIN_CONFIG in the code)
  *
  * Features:
  * - Draggable, semi-transparent UI overlay with terminal aesthetic.
@@ -21,33 +23,55 @@
  * - Console logging for debugging.
  *
  * Usage:
- * 1. Navigate to the target web trading platform (e.g., Webull ETH chart).
+ * 1. Navigate to the target web trading platform:
+ *    - For stocks: https://app.webull.com/stocks
+ *    - For crypto: https://app.webull.com/crypto
  * 2. Open your browser's developer console (F12 or Cmd+Option+I).
  * 3. Paste this entire script into the console and press Enter.
  * 4. The UI overlay should appear. Click 'START' to activate the bot.
+ *
+ * Note: The default configuration is set for STOCKS trading. To use with crypto,
+ * uncomment the desired crypto configuration (SOL, XRP, XLM, etc.) and comment out
+ * the STOCK configuration in the code below.
  */
 
 (function() {
     // --- Configuration ---
 
     // ========================================
-    // MULTI-COIN CONFIGURATION
-    // Choose your preferred low-fee coin by uncommenting ONE section below
+    // TRADING CONFIGURATION
+    // Choose your preferred asset by uncommenting ONE section below
     // ========================================
 
-    // OPTION 1: SOLANA (SOL) - RECOMMENDED FOR LOW FEES
-    // Extremely low transaction fees (~$0.00025), high liquidity, fast execution
-    // Typical exchange fee: 0.1% per trade (maker/taker)
+    // OPTION 0: STOCKS - FOR https://app.webull.com/stocks
+    // Use this configuration when trading individual stocks on Webull
+    // Typical exchange fee: 0% for stock trades on most platforms
     const COIN_CONFIG = {
-        name: 'SOL/USD',
-        xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-        exchangeFeePercent: 0.001,  // 0.1% fee per trade
-        profitTargetPercent: 0.0025, // 0.25% profit target (higher to cover fees)
+        name: 'STOCK',
+        xpath: '//*[@id="app"]/section/section/section/main/div/div[2]/div[1]/div[2]/div/div/span[2]',
+        exchangeFeePercent: 0.0,     // 0% fee for stocks (adjust if your broker charges)
+        profitTargetPercent: 0.0025, // 0.25% profit target
         stopLossPercent: 0.0012,     // 0.12% stop loss
         trailingStopPercent: 0.0006, // 0.06% trailing stop
     };
 
-    // OPTION 2: XRP - ULTRA LOW BLOCKCHAIN FEES
+    // OPTION 1: SOLANA (SOL) - RECOMMENDED FOR LOW FEES (CRYPTO)
+    // Extremely low transaction fees (~$0.00025), high liquidity, fast execution
+    // Typical exchange fee: 0.1% per trade (maker/taker)
+    // For crypto trading, navigate to: https://app.webull.com/crypto
+    // /*
+    // const COIN_CONFIG = {
+    //     name: 'SOL/USD',
+    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
+    //     exchangeFeePercent: 0.001,  // 0.1% fee per trade
+    //     profitTargetPercent: 0.0025, // 0.25% profit target (higher to cover fees)
+    //     stopLossPercent: 0.0012,     // 0.12% stop loss
+    //     trailingStopPercent: 0.0006, // 0.06% trailing stop
+    // };
+    // */
+
+    // OPTION 2: XRP - ULTRA LOW BLOCKCHAIN FEES (CRYPTO)
+    // For crypto trading, navigate to: https://app.webull.com/crypto
     // /*
     // const COIN_CONFIG = {
     //     name: 'XRP/USD',
@@ -59,7 +83,8 @@
     // };
     // */
 
-    // OPTION 3: STELLAR (XLM) - LOWEST FEES
+    // OPTION 3: STELLAR (XLM) - LOWEST FEES (CRYPTO)
+    // For crypto trading, navigate to: https://app.webull.com/crypto
     // /*
     // const COIN_CONFIG = {
     //     name: 'XLM/USD',
@@ -71,7 +96,8 @@
     // };
     // */
 
-    // OPTION 4: ALGORAND (ALGO) - LOW FEES, FAST
+    // OPTION 4: ALGORAND (ALGO) - LOW FEES, FAST (CRYPTO)
+    // For crypto trading, navigate to: https://app.webull.com/crypto
     // /*
     // const COIN_CONFIG = {
     //     name: 'ALGO/USD',
@@ -83,7 +109,8 @@
     // };
     // */
 
-    // OPTION 5: POLYGON (MATIC) - LOW FEES
+    // OPTION 5: POLYGON (MATIC) - LOW FEES (CRYPTO)
+    // For crypto trading, navigate to: https://app.webull.com/crypto
     // /*
     // const COIN_CONFIG = {
     //     name: 'MATIC/USD',
@@ -95,7 +122,8 @@
     // };
     // */
 
-    // OPTION 6: LITECOIN (LTC) - LOWER FEES THAN ETH
+    // OPTION 6: LITECOIN (LTC) - LOWER FEES THAN ETH (CRYPTO)
+    // For crypto trading, navigate to: https://app.webull.com/crypto
     // /*
     // const COIN_CONFIG = {
     //     name: 'LTC/USD',
@@ -107,7 +135,8 @@
     // };
     // */
 
-    // OPTION 7: TRON (TRX) - VERY LOW FEES
+    // OPTION 7: TRON (TRX) - VERY LOW FEES (CRYPTO)
+    // For crypto trading, navigate to: https://app.webull.com/crypto
     // /*
     // const COIN_CONFIG = {
     //     name: 'TRX/USD',
@@ -119,7 +148,8 @@
     // };
     // */
 
-    // OPTION 8: ETHEREUM (ETH) - ORIGINAL (NOT RECOMMENDED - HIGH FEES)
+    // OPTION 8: ETHEREUM (ETH) - ORIGINAL (NOT RECOMMENDED - HIGH FEES) (CRYPTO)
+    // For crypto trading, navigate to: https://app.webull.com/crypto
     // /*
     // const COIN_CONFIG = {
     //     name: 'ETH/USD',
