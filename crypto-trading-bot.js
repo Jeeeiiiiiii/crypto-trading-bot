@@ -1,14 +1,12 @@
  /**
- * High-Frequency Scalping Trading Bot (Simulated)
+ * Solana Scalping Trading Bot with Low Fees (Simulated)
  * For Educational/Simulation Purposes Only.
  *
- * This script is designed to be injected into a web trading platform's browser console.
- * It creates a draggable UI overlay, monitors price changes, implements a tick-scalping
- * strategy, and tracks simulated trading performance.
+ * This script is designed for scalping Solana (SOL) with a small budget ($2-3).
+ * It's optimized for low fees and includes realistic fee and slippage simulation.
  *
- * Target Platforms:
- * - Stocks: https://app.webull.com/stocks (Default configuration)
- * - Crypto: https://app.webull.com/crypto (Change COIN_CONFIG in the code)
+ * Target Platform:
+ * - Crypto: https://app.webull.com/crypto (Navigate to SOL/USD)
  *
  * Features:
  * - Draggable, semi-transparent UI overlay with terminal aesthetic.
@@ -19,161 +17,66 @@
  * - Supports simulated long and short positions.
  * - Auto-exits positions on profit target, stop loss, or time limit.
  * - Tracks total P&L, win rate, and number of trades.
+ * - Realistic DEX fees (0.25%) and slippage simulation (0.1-0.3%).
+ * - Dynamic position sizing based on budget and current price.
  * - Maintains price history and calculates basic 1-minute OHLC (for display/logging).
  * - Console logging for debugging.
  *
  * Usage:
- * 1. Navigate to the target web trading platform:
- *    - For stocks: https://app.webull.com/stocks
- *    - For crypto: https://app.webull.com/crypto
- * 2. Open your browser's developer console (F12 or Cmd+Option+I).
- * 3. Paste this entire script into the console and press Enter.
- * 4. The UI overlay should appear. Click 'START' to activate the bot.
+ * 1. Navigate to https://app.webull.com/crypto
+ * 2. Open the SOL/USD chart
+ * 3. Open your browser's developer console (F12 or Cmd+Option+I).
+ * 4. Paste this entire script into the console and press Enter.
+ * 5. The UI overlay should appear. Click 'START' to activate the bot.
  *
- * Note: The default configuration is set for STOCKS trading. To use with crypto,
- * uncomment the desired crypto configuration (SOL, XRP, XLM, etc.) and comment out
- * the STOCK configuration in the code below.
+ * Note: This bot is configured for Solana scalping with a $2-3 budget.
+ * It includes realistic DEX fees and slippage to provide accurate profitability simulation.
  */
 
 (function() {
     // --- Configuration ---
 
     // ========================================
-    // TRADING CONFIGURATION
-    // Choose your preferred asset by uncommenting ONE section below
+    // TRADING CONFIGURATION - SOLANA SCALPING
     // ========================================
 
-    // OPTION 0: STOCKS - FOR https://app.webull.com/stocks
-    // Use this configuration when trading individual stocks on Webull
-    // Typical exchange fee: 0% for stock trades on most platforms
+    // Budget Configuration (ADJUST THIS TO YOUR BUDGET)
+    const TRADING_BUDGET = 3.0;  // Your trading budget in USD ($2-3 recommended)
+
+    // SOLANA (SOL) - Optimized for low fees and small budget scalping
+    // Navigate to: https://app.webull.com/crypto and open SOL/USD chart
     const COIN_CONFIG = {
-        name: 'STOCK',
-        xpath: '//*[@id="app"]/section/section/section/main/div/div[2]/div[1]/div[2]/div/div/span[2]',
-        exchangeFeePercent: 0.0,     // 0% fee for stocks (adjust if your broker charges)
-        profitTargetPercent: 0.0025, // 0.25% profit target
-        stopLossPercent: 0.0012,     // 0.12% stop loss
-        trailingStopPercent: 0.0006, // 0.06% trailing stop
+        name: 'SOL/USD',
+        xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
+
+        // Realistic DEX Trading Costs
+        exchangeFeePercent: 0.0025,   // 0.25% DEX fee per trade (Jupiter, Raydium typical)
+        slippagePercent: 0.0015,       // 0.15% average slippage for small orders
+
+        // Adjusted targets for profitability with fees + slippage
+        // Total cost per trade: 0.25% fee + 0.15% slippage = 0.4% entry + 0.4% exit = 0.8% round trip
+        profitTargetPercent: 0.012,    // 1.2% profit target (ensures profit after 0.8% costs)
+        stopLossPercent: 0.006,        // 0.6% stop loss (limits losses while accounting for costs)
+        trailingStopPercent: 0.003,    // 0.3% trailing stop (locks in profits)
     };
 
-    // OPTION 1: SOLANA (SOL) - RECOMMENDED FOR LOW FEES (CRYPTO)
-    // Extremely low transaction fees (~$0.00025), high liquidity, fast execution
-    // Typical exchange fee: 0.1% per trade (maker/taker)
-    // For crypto trading, navigate to: https://app.webull.com/crypto
-    // /*
-    // const COIN_CONFIG = {
-    //     name: 'SOL/USD',
-    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,  // 0.1% fee per trade
-    //     profitTargetPercent: 0.0025, // 0.25% profit target (higher to cover fees)
-    //     stopLossPercent: 0.0012,     // 0.12% stop loss
-    //     trailingStopPercent: 0.0006, // 0.06% trailing stop
-    // };
-    // */
-
-    // OPTION 2: XRP - ULTRA LOW BLOCKCHAIN FEES (CRYPTO)
-    // For crypto trading, navigate to: https://app.webull.com/crypto
-    // /*
-    // const COIN_CONFIG = {
-    //     name: 'XRP/USD',
-    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,  // 0.1% exchange fee
-    //     profitTargetPercent: 0.0025,
-    //     stopLossPercent: 0.0012,
-    //     trailingStopPercent: 0.0006,
-    // };
-    // */
-
-    // OPTION 3: STELLAR (XLM) - LOWEST FEES (CRYPTO)
-    // For crypto trading, navigate to: https://app.webull.com/crypto
-    // /*
-    // const COIN_CONFIG = {
-    //     name: 'XLM/USD',
-    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,  // 0.1% exchange fee
-    //     profitTargetPercent: 0.0025,
-    //     stopLossPercent: 0.0012,
-    //     trailingStopPercent: 0.0006,
-    // };
-    // */
-
-    // OPTION 4: ALGORAND (ALGO) - LOW FEES, FAST (CRYPTO)
-    // For crypto trading, navigate to: https://app.webull.com/crypto
-    // /*
-    // const COIN_CONFIG = {
-    //     name: 'ALGO/USD',
-    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,
-    //     profitTargetPercent: 0.0025,
-    //     stopLossPercent: 0.0012,
-    //     trailingStopPercent: 0.0006,
-    // };
-    // */
-
-    // OPTION 5: POLYGON (MATIC) - LOW FEES (CRYPTO)
-    // For crypto trading, navigate to: https://app.webull.com/crypto
-    // /*
-    // const COIN_CONFIG = {
-    //     name: 'MATIC/USD',
-    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,
-    //     profitTargetPercent: 0.0025,
-    //     stopLossPercent: 0.0012,
-    //     trailingStopPercent: 0.0006,
-    // };
-    // */
-
-    // OPTION 6: LITECOIN (LTC) - LOWER FEES THAN ETH (CRYPTO)
-    // For crypto trading, navigate to: https://app.webull.com/crypto
-    // /*
-    // const COIN_CONFIG = {
-    //     name: 'LTC/USD',
-    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,
-    //     profitTargetPercent: 0.0025,
-    //     stopLossPercent: 0.0012,
-    //     trailingStopPercent: 0.0006,
-    // };
-    // */
-
-    // OPTION 7: TRON (TRX) - VERY LOW FEES (CRYPTO)
-    // For crypto trading, navigate to: https://app.webull.com/crypto
-    // /*
-    // const COIN_CONFIG = {
-    //     name: 'TRX/USD',
-    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,
-    //     profitTargetPercent: 0.0025,
-    //     stopLossPercent: 0.0012,
-    //     trailingStopPercent: 0.0006,
-    // };
-    // */
-
-    // OPTION 8: ETHEREUM (ETH) - ORIGINAL (NOT RECOMMENDED - HIGH FEES) (CRYPTO)
-    // For crypto trading, navigate to: https://app.webull.com/crypto
-    // /*
-    // const COIN_CONFIG = {
-    //     name: 'ETH/USD',
-    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,  // 0.1% exchange fee (not including gas fees)
-    //     profitTargetPercent: 0.0008, // 0.08% - TOO LOW for profitable trading with fees
-    //     stopLossPercent: 0.0004,
-    //     trailingStopPercent: 0.0002,
-    // };
-    // */
-
-    // General Configuration (applies to all coins)
+    // General Configuration
     const TARGET_PRICE_XPATH = COIN_CONFIG.xpath;
     const MOMENTUM_SHORT_AVG_PERIOD = 5;  // Shorter average period for momentum
     const MOMENTUM_LONG_AVG_PERIOD = 20;  // Longer average period for momentum
-    const MOMENTUM_THRESHOLD = 0.00005; // Sensitivity for entering trades (e.g., 0.005% price change)
+    const MOMENTUM_THRESHOLD = 0.0002; // Sensitivity for entering trades (0.02% price change, reduced for fewer trades)
     const PROFIT_TARGET_PERCENT = COIN_CONFIG.profitTargetPercent;
     const STOP_LOSS_PERCENT = COIN_CONFIG.stopLossPercent;
     const TRAILING_STOP_PERCENT = COIN_CONFIG.trailingStopPercent;
     const EXCHANGE_FEE_PERCENT = COIN_CONFIG.exchangeFeePercent;
-    const POSITION_TIME_LIMIT_MS = 60 * 1000; // Max 60 seconds per trade to enforce high-frequency
+    const SLIPPAGE_PERCENT = COIN_CONFIG.slippagePercent;
+    const POSITION_TIME_LIMIT_MS = 120 * 1000; // Max 120 seconds per trade (longer hold for bigger moves)
     const PRICE_HISTORY_MAX_SIZE = 100;  // Max number of price ticks to store
     const OHLC_UPDATE_INTERVAL_MS = 60 * 1000; // Update OHLC every 1 minute
-    const BOT_QUANTITY = 1; // Simulated quantity for each trade
+
+    // Dynamic position sizing based on budget and current price
+    // Will be calculated when opening positions: TRADING_BUDGET / currentPrice
+    let BOT_QUANTITY = 0; // Will be set dynamically based on budget
 
     // --- Global State Variables ---
     let botStatus = 'STOPPED'; // 'STOPPED', 'RUNNING', 'POSITION_OPEN'
@@ -186,10 +89,11 @@
     let totalPnl = 0;
     let totalPnlAfterFees = 0;
     let totalFeesPaid = 0;
+    let totalSlippagePaid = 0;
     let numTrades = 0;
     let numWins = 0;
     let numWinsAfterFees = 0;
-    let tradeLog = []; // Stores objects: { timestamp, type, entryPrice, exitPrice, pnl, fees, netPnl, status }
+    let tradeLog = []; // Stores objects: { timestamp, type, entryPrice, exitPrice, pnl, fees, slippage, netPnl, status }
 
     let priceObserver = null; // MutationObserver instance
     let ohlcInterval = null;  // Interval for OHLC calculation
@@ -246,33 +150,39 @@
 
         if (position) {
             const currentPositionPnl = (currentPrice - position.entryPrice) * (position.type === 'LONG' ? 1 : -1) * position.quantity;
+            const positionValue = currentPrice * position.quantity;
+            const pnlPercent = (currentPositionPnl / TRADING_BUDGET) * 100;
             positionInfoDisplay.innerHTML = `
-                Position: ${position.type} <br>
-                Entry: $${position.entryPrice.toFixed(2)} <br>
-                Current P&L: $${currentPositionPnl.toFixed(2)}
+                Position: ${position.type} (${position.quantity.toFixed(6)} SOL = $${positionValue.toFixed(2)}) <br>
+                Entry: $${position.entryPrice.toFixed(2)} | Current: $${currentPrice.toFixed(2)} <br>
+                Current P&L: $${currentPositionPnl.toFixed(4)} (${pnlPercent.toFixed(2)}%)
             `;
         } else {
-            positionInfoDisplay.textContent = 'Position: None';
+            positionInfoDisplay.innerHTML = `Position: None <br> Budget: $${TRADING_BUDGET.toFixed(2)}`;
         }
 
         const winRate = numTrades > 0 ? ((numWins / numTrades) * 100).toFixed(2) : '0.00';
         const winRateAfterFees = numTrades > 0 ? ((numWinsAfterFees / numTrades) * 100).toFixed(2) : '0.00';
         const profitColor = totalPnlAfterFees >= 0 ? 'lawngreen' : 'red';
-        const feePercentOfProfit = totalPnl !== 0 ? ((totalFeesPaid / Math.abs(totalPnl)) * 100).toFixed(1) : '0.0';
+        const totalCosts = totalFeesPaid + totalSlippagePaid;
+        const costPercentOfProfit = totalPnl !== 0 ? ((totalCosts / Math.abs(totalPnl)) * 100).toFixed(1) : '0.0';
 
         pnlStatsDisplay.innerHTML = `
-            <span style="color: grey;">Gross P&L:</span> $${totalPnl.toFixed(2)} <br>
-            <span style="color: orange;">Total Fees:</span> -$${totalFeesPaid.toFixed(2)} (${feePercentOfProfit}%) <br>
-            <span style="color: ${profitColor}; font-weight: bold;">Net P&L:</span> $${totalPnlAfterFees.toFixed(2)} <br>
-            Trades: ${numTrades} | Wins: ${numWins} (${numWinsAfterFees} after fees) <br>
-            Win Rate: ${winRate}% (${winRateAfterFees}% after fees)
+            <span style="color: grey;">Gross P&L:</span> $${totalPnl.toFixed(4)} <br>
+            <span style="color: orange;">Total Fees:</span> -$${totalFeesPaid.toFixed(4)} <br>
+            <span style="color: orange;">Total Slippage:</span> -$${totalSlippagePaid.toFixed(4)} <br>
+            <span style="color: orange;">Total Costs:</span> -$${totalCosts.toFixed(4)} (${costPercentOfProfit}%) <br>
+            <span style="color: ${profitColor}; font-weight: bold;">Net P&L:</span> $${totalPnlAfterFees.toFixed(4)} <br>
+            Trades: ${numTrades} | Wins: ${numWins} (${numWinsAfterFees} after costs) <br>
+            Win Rate: ${winRate}% (${winRateAfterFees}% after costs)
         `;
 
         // Update trade log display
         tradeLogDisplay.innerHTML = tradeLog.map(trade => {
             const grossPnlColor = trade.pnl >= 0 ? 'lawngreen' : 'red';
             const netPnlColor = trade.netPnl >= 0 ? 'lawngreen' : 'red';
-            return `<span style="color: grey;">${new Date(trade.timestamp).toLocaleTimeString()}</span> - ${trade.type}: $${trade.entryPrice.toFixed(2)}→$${trade.exitPrice.toFixed(2)} | Gross: <span style="color: ${grossPnlColor};">$${trade.pnl.toFixed(2)}</span> | Fee: <span style="color: orange;">-$${trade.fees.toFixed(2)}</span> | Net: <span style="color: ${netPnlColor}; font-weight: bold;">$${trade.netPnl.toFixed(2)}</span> (${trade.status})`;
+            const totalCosts = trade.fees + trade.slippage;
+            return `<span style="color: grey;">${new Date(trade.timestamp).toLocaleTimeString()}</span> - ${trade.type}: $${trade.entryPrice.toFixed(2)}→$${trade.exitPrice.toFixed(2)} | Gross: <span style="color: ${grossPnlColor};">$${trade.pnl.toFixed(4)}</span> | Costs: <span style="color: orange;">-$${totalCosts.toFixed(4)}</span> | Net: <span style="color: ${netPnlColor}; font-weight: bold;">$${trade.netPnl.toFixed(4)}</span> (${trade.status})`;
         }).join('<br>');
 
         // Scroll to bottom of trade log
@@ -289,17 +199,25 @@
      * @param {'LONG'|'SHORT'} type - Type of the trade.
      * @param {number} entryPrice - Price at which position was opened.
      * @param {number} exitPrice - Price at which position was closed.
-     * @param {number} pnl - Profit or loss for this trade (before fees).
+     * @param {number} pnl - Profit or loss for this trade (before fees and slippage).
      * @param {string} status - Reason for closing ('PROFIT', 'STOP_LOSS', 'TIME_LIMIT', 'MANUAL').
      */
     function logTrade(type, entryPrice, exitPrice, pnl, status) {
         // Calculate fees: entry fee + exit fee
         // Fee is calculated on the position value at entry and exit
-        const positionValue = entryPrice * BOT_QUANTITY;
+        const positionValue = entryPrice * position.quantity;
         const entryFee = positionValue * EXCHANGE_FEE_PERCENT;
-        const exitFee = exitPrice * BOT_QUANTITY * EXCHANGE_FEE_PERCENT;
+        const exitFee = exitPrice * position.quantity * EXCHANGE_FEE_PERCENT;
         const totalFees = entryFee + exitFee;
-        const netPnl = pnl - totalFees;
+
+        // Calculate slippage: entry slippage + exit slippage
+        // Slippage is a cost that occurs when executing trades due to market conditions
+        const entrySlippage = positionValue * SLIPPAGE_PERCENT;
+        const exitSlippage = exitPrice * position.quantity * SLIPPAGE_PERCENT;
+        const totalSlippage = entrySlippage + exitSlippage;
+
+        // Net P&L after fees and slippage
+        const netPnl = pnl - totalFees - totalSlippage;
 
         tradeLog.push({
             timestamp: Date.now(),
@@ -308,6 +226,7 @@
             exitPrice,
             pnl,
             fees: totalFees,
+            slippage: totalSlippage,
             netPnl,
             status
         });
@@ -319,16 +238,17 @@
         numTrades++;
         totalPnl += pnl;
         totalFeesPaid += totalFees;
+        totalSlippagePaid += totalSlippage;
         totalPnlAfterFees += netPnl;
 
         if (pnl >= 0) { // Consider breakeven a win for gross win rate calc
             numWins++;
         }
-        if (netPnl >= 0) { // Win after fees
+        if (netPnl >= 0) { // Win after fees and slippage
             numWinsAfterFees++;
         }
 
-        console.log(`TRADE LOG: ${type} - Entry: $${entryPrice.toFixed(2)}, Exit: $${exitPrice.toFixed(2)}, Gross P&L: $${pnl.toFixed(2)}, Fees: -$${totalFees.toFixed(2)}, Net P&L: $${netPnl.toFixed(2)} (${status})`);
+        console.log(`TRADE LOG: ${type} - Entry: $${entryPrice.toFixed(2)}, Exit: $${exitPrice.toFixed(2)}, Gross P&L: $${pnl.toFixed(4)}, Fees: -$${totalFees.toFixed(4)}, Slippage: -$${totalSlippage.toFixed(4)}, Net P&L: $${netPnl.toFixed(4)} (${status})`);
         updateUI();
     }
 
@@ -463,6 +383,10 @@
     function openPosition(type) {
         if (position || currentPrice === 0) return; // Already in a position or no valid price
 
+        // Calculate position quantity based on trading budget and current price
+        // For $3 budget and SOL at $150, quantity = 3 / 150 = 0.02 SOL
+        const quantity = TRADING_BUDGET / currentPrice;
+
         const initialStopLossPrice = (type === 'LONG')
             ? currentPrice * (1 - STOP_LOSS_PERCENT)
             : currentPrice * (1 + STOP_LOSS_PERCENT);
@@ -472,12 +396,12 @@
             type: type,
             entryPrice: currentPrice,
             entryTime: Date.now(),
-            quantity: BOT_QUANTITY,
+            quantity: quantity,
             initialStopLoss: initialStopLossPrice, // Store the initial fixed stop loss
             trailingStopValue: initialStopLossPrice // Initialize trailing stop at initial fixed stop loss
         };
-        console.log(`Position Opened: ${type} at $${currentPrice.toFixed(2)}`);
-        showMessage(`OPENED ${type} at $${currentPrice.toFixed(2)}`);
+        console.log(`Position Opened: ${type} - ${quantity.toFixed(6)} SOL at $${currentPrice.toFixed(2)} (Position Value: $${TRADING_BUDGET.toFixed(2)})`);
+        showMessage(`OPENED ${type} - $${TRADING_BUDGET.toFixed(2)} @ $${currentPrice.toFixed(2)}`);
         updateUI();
     }
 
@@ -643,20 +567,23 @@
 
         overlayElement.innerHTML = `
             <div id="bot-header" style="font-weight: bold; text-align: center; margin-bottom: 10px; cursor: move;">
-                HFT Scalper Bot (Simulated) - ${COIN_CONFIG.name}
+                Solana Scalping Bot - ${COIN_CONFIG.name}
             </div>
-            <div style="text-align: center; font-size: 11px; color: orange; margin-bottom: 8px;">
-                Trading Fee: ${(EXCHANGE_FEE_PERCENT * 100).toFixed(2)}% per trade | Profit Target: ${(PROFIT_TARGET_PERCENT * 100).toFixed(2)}%
+            <div style="text-align: center; font-size: 10px; color: cyan; margin-bottom: 8px;">
+                Budget: $${TRADING_BUDGET.toFixed(2)} | DEX Fee: ${(EXCHANGE_FEE_PERCENT * 100).toFixed(2)}% | Slippage: ${(SLIPPAGE_PERCENT * 100).toFixed(2)}% <br>
+                Profit Target: ${(PROFIT_TARGET_PERCENT * 100).toFixed(2)}% | Stop Loss: ${(STOP_LOSS_PERCENT * 100).toFixed(2)}%
             </div>
             <div id="current-price-display">Current Price: $0.00</div>
             <div id="bot-status-display">Status: STOPPED</div>
-            <div id="position-info-display">Position: None</div>
+            <div id="position-info-display">Position: None <br> Budget: $${TRADING_BUDGET.toFixed(2)}</div>
             <div id="pnl-stats-display">
-                <span style="color: grey;">Gross P&L:</span> $0.00 <br>
-                <span style="color: orange;">Total Fees:</span> -$0.00 (0.0%) <br>
-                <span style="color: lawngreen; font-weight: bold;">Net P&L:</span> $0.00 <br>
-                Trades: 0 | Wins: 0 (0 after fees) <br>
-                Win Rate: 0.00% (0.00% after fees)
+                <span style="color: grey;">Gross P&L:</span> $0.0000 <br>
+                <span style="color: orange;">Total Fees:</span> -$0.0000 <br>
+                <span style="color: orange;">Total Slippage:</span> -$0.0000 <br>
+                <span style="color: orange;">Total Costs:</span> -$0.0000 (0.0%) <br>
+                <span style="color: lawngreen; font-weight: bold;">Net P&L:</span> $0.0000 <br>
+                Trades: 0 | Wins: 0 (0 after costs) <br>
+                Win Rate: 0.00% (0.00% after costs)
             </div>
             <div id="controls" style="display: flex; gap: 10px; margin-top: 10px;">
                 <button id="start-bot-btn" style="flex: 1; padding: 8px; background-color: #005000; color: lawngreen; border: 1px solid #0f0; border-radius: 5px; cursor: pointer; font-family: inherit; font-size: inherit;">START</button>
