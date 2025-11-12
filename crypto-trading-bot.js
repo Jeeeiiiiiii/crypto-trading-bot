@@ -29,17 +29,121 @@
 
 (function() {
     // --- Configuration ---
-    const TARGET_PRICE_XPATH = '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]';
+
+    // ========================================
+    // MULTI-COIN CONFIGURATION
+    // Choose your preferred low-fee coin by uncommenting ONE section below
+    // ========================================
+
+    // OPTION 1: SOLANA (SOL) - RECOMMENDED FOR LOW FEES
+    // Extremely low transaction fees (~$0.00025), high liquidity, fast execution
+    // Typical exchange fee: 0.1% per trade (maker/taker)
+    const COIN_CONFIG = {
+        name: 'SOL/USD',
+        xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
+        exchangeFeePercent: 0.001,  // 0.1% fee per trade
+        profitTargetPercent: 0.0025, // 0.25% profit target (higher to cover fees)
+        stopLossPercent: 0.0012,     // 0.12% stop loss
+        trailingStopPercent: 0.0006, // 0.06% trailing stop
+    };
+
+    // OPTION 2: XRP - ULTRA LOW BLOCKCHAIN FEES
+    // /*
+    // const COIN_CONFIG = {
+    //     name: 'XRP/USD',
+    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
+    //     exchangeFeePercent: 0.001,  // 0.1% exchange fee
+    //     profitTargetPercent: 0.0025,
+    //     stopLossPercent: 0.0012,
+    //     trailingStopPercent: 0.0006,
+    // };
+    // */
+
+    // OPTION 3: STELLAR (XLM) - LOWEST FEES
+    // /*
+    // const COIN_CONFIG = {
+    //     name: 'XLM/USD',
+    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
+    //     exchangeFeePercent: 0.001,  // 0.1% exchange fee
+    //     profitTargetPercent: 0.0025,
+    //     stopLossPercent: 0.0012,
+    //     trailingStopPercent: 0.0006,
+    // };
+    // */
+
+    // OPTION 4: ALGORAND (ALGO) - LOW FEES, FAST
+    // /*
+    // const COIN_CONFIG = {
+    //     name: 'ALGO/USD',
+    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
+    //     exchangeFeePercent: 0.001,
+    //     profitTargetPercent: 0.0025,
+    //     stopLossPercent: 0.0012,
+    //     trailingStopPercent: 0.0006,
+    // };
+    // */
+
+    // OPTION 5: POLYGON (MATIC) - LOW FEES
+    // /*
+    // const COIN_CONFIG = {
+    //     name: 'MATIC/USD',
+    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
+    //     exchangeFeePercent: 0.001,
+    //     profitTargetPercent: 0.0025,
+    //     stopLossPercent: 0.0012,
+    //     trailingStopPercent: 0.0006,
+    // };
+    // */
+
+    // OPTION 6: LITECOIN (LTC) - LOWER FEES THAN ETH
+    // /*
+    // const COIN_CONFIG = {
+    //     name: 'LTC/USD',
+    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
+    //     exchangeFeePercent: 0.001,
+    //     profitTargetPercent: 0.0025,
+    //     stopLossPercent: 0.0012,
+    //     trailingStopPercent: 0.0006,
+    // };
+    // */
+
+    // OPTION 7: TRON (TRX) - VERY LOW FEES
+    // /*
+    // const COIN_CONFIG = {
+    //     name: 'TRX/USD',
+    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
+    //     exchangeFeePercent: 0.001,
+    //     profitTargetPercent: 0.0025,
+    //     stopLossPercent: 0.0012,
+    //     trailingStopPercent: 0.0006,
+    // };
+    // */
+
+    // OPTION 8: ETHEREUM (ETH) - ORIGINAL (NOT RECOMMENDED - HIGH FEES)
+    // /*
+    // const COIN_CONFIG = {
+    //     name: 'ETH/USD',
+    //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
+    //     exchangeFeePercent: 0.001,  // 0.1% exchange fee (not including gas fees)
+    //     profitTargetPercent: 0.0008, // 0.08% - TOO LOW for profitable trading with fees
+    //     stopLossPercent: 0.0004,
+    //     trailingStopPercent: 0.0002,
+    // };
+    // */
+
+    // General Configuration (applies to all coins)
+    const TARGET_PRICE_XPATH = COIN_CONFIG.xpath;
     const MOMENTUM_SHORT_AVG_PERIOD = 5;  // Shorter average period for momentum
     const MOMENTUM_LONG_AVG_PERIOD = 20;  // Longer average period for momentum
     const MOMENTUM_THRESHOLD = 0.00005; // Sensitivity for entering trades (e.g., 0.005% price change)
-    const PROFIT_TARGET_PERCENT = 0.0008; // 0.08% profit target (e.g., for $1000, $0.8 profit)
-    const STOP_LOSS_PERCENT = 0.0004;    // 0.04% initial fixed stop loss
-    const TRAILING_STOP_PERCENT = 0.0002; // 0.02% trailing stop step
+    const PROFIT_TARGET_PERCENT = COIN_CONFIG.profitTargetPercent;
+    const STOP_LOSS_PERCENT = COIN_CONFIG.stopLossPercent;
+    const TRAILING_STOP_PERCENT = COIN_CONFIG.trailingStopPercent;
+    const EXCHANGE_FEE_PERCENT = COIN_CONFIG.exchangeFeePercent;
     const POSITION_TIME_LIMIT_MS = 60 * 1000; // Max 60 seconds per trade to enforce high-frequency
     const PRICE_HISTORY_MAX_SIZE = 100;  // Max number of price ticks to store
     const OHLC_UPDATE_INTERVAL_MS = 60 * 1000; // Update OHLC every 1 minute
-    const BOT_QUANTITY = 1; // Simulated quantity for each trade (e.g., 1 ETH)
+    const BOT_QUANTITY = 1; // Simulated quantity for each trade
 
     // --- Global State Variables ---
     let botStatus = 'STOPPED'; // 'STOPPED', 'RUNNING', 'POSITION_OPEN'
@@ -50,9 +154,12 @@
     let position = null; // { type: 'LONG'/'SHORT', entryPrice, entryTime, quantity, initialStopLoss, trailingStopValue }
 
     let totalPnl = 0;
+    let totalPnlAfterFees = 0;
+    let totalFeesPaid = 0;
     let numTrades = 0;
     let numWins = 0;
-    let tradeLog = []; // Stores objects: { timestamp, type, entryPrice, exitPrice, pnl, status }
+    let numWinsAfterFees = 0;
+    let tradeLog = []; // Stores objects: { timestamp, type, entryPrice, exitPrice, pnl, fees, netPnl, status }
 
     let priceObserver = null; // MutationObserver instance
     let ohlcInterval = null;  // Interval for OHLC calculation
@@ -119,16 +226,23 @@
         }
 
         const winRate = numTrades > 0 ? ((numWins / numTrades) * 100).toFixed(2) : '0.00';
+        const winRateAfterFees = numTrades > 0 ? ((numWinsAfterFees / numTrades) * 100).toFixed(2) : '0.00';
+        const profitColor = totalPnlAfterFees >= 0 ? 'lawngreen' : 'red';
+        const feePercentOfProfit = totalPnl !== 0 ? ((totalFeesPaid / Math.abs(totalPnl)) * 100).toFixed(1) : '0.0';
+
         pnlStatsDisplay.innerHTML = `
-            Total P&L: $${totalPnl.toFixed(2)} <br>
-            Trades: ${numTrades} (Wins: ${numWins}) <br>
-            Win Rate: ${winRate}%
+            <span style="color: grey;">Gross P&L:</span> $${totalPnl.toFixed(2)} <br>
+            <span style="color: orange;">Total Fees:</span> -$${totalFeesPaid.toFixed(2)} (${feePercentOfProfit}%) <br>
+            <span style="color: ${profitColor}; font-weight: bold;">Net P&L:</span> $${totalPnlAfterFees.toFixed(2)} <br>
+            Trades: ${numTrades} | Wins: ${numWins} (${numWinsAfterFees} after fees) <br>
+            Win Rate: ${winRate}% (${winRateAfterFees}% after fees)
         `;
 
         // Update trade log display
         tradeLogDisplay.innerHTML = tradeLog.map(trade => {
-            const pnlColor = trade.pnl >= 0 ? 'lawngreen' : 'red';
-            return `<span style="color: grey;">${new Date(trade.timestamp).toLocaleTimeString()}</span> - ${trade.type}: Entry $${trade.entryPrice.toFixed(2)}, Exit $${trade.exitPrice.toFixed(2)}, P&L: <span style="color: ${pnlColor};">$${trade.pnl.toFixed(2)}</span> (${trade.status})`;
+            const grossPnlColor = trade.pnl >= 0 ? 'lawngreen' : 'red';
+            const netPnlColor = trade.netPnl >= 0 ? 'lawngreen' : 'red';
+            return `<span style="color: grey;">${new Date(trade.timestamp).toLocaleTimeString()}</span> - ${trade.type}: $${trade.entryPrice.toFixed(2)}→$${trade.exitPrice.toFixed(2)} | Gross: <span style="color: ${grossPnlColor};">$${trade.pnl.toFixed(2)}</span> | Fee: <span style="color: orange;">-$${trade.fees.toFixed(2)}</span> | Net: <span style="color: ${netPnlColor}; font-weight: bold;">$${trade.netPnl.toFixed(2)}</span> (${trade.status})`;
         }).join('<br>');
 
         // Scroll to bottom of trade log
@@ -145,16 +259,26 @@
      * @param {'LONG'|'SHORT'} type - Type of the trade.
      * @param {number} entryPrice - Price at which position was opened.
      * @param {number} exitPrice - Price at which position was closed.
-     * @param {number} pnl - Profit or loss for this trade.
+     * @param {number} pnl - Profit or loss for this trade (before fees).
      * @param {string} status - Reason for closing ('PROFIT', 'STOP_LOSS', 'TIME_LIMIT', 'MANUAL').
      */
     function logTrade(type, entryPrice, exitPrice, pnl, status) {
+        // Calculate fees: entry fee + exit fee
+        // Fee is calculated on the position value at entry and exit
+        const positionValue = entryPrice * BOT_QUANTITY;
+        const entryFee = positionValue * EXCHANGE_FEE_PERCENT;
+        const exitFee = exitPrice * BOT_QUANTITY * EXCHANGE_FEE_PERCENT;
+        const totalFees = entryFee + exitFee;
+        const netPnl = pnl - totalFees;
+
         tradeLog.push({
             timestamp: Date.now(),
             type,
             entryPrice,
             exitPrice,
             pnl,
+            fees: totalFees,
+            netPnl,
             status
         });
         // Keep log size manageable
@@ -164,10 +288,17 @@
 
         numTrades++;
         totalPnl += pnl;
-        if (pnl >= 0) { // Consider breakeven a win for win rate calc
+        totalFeesPaid += totalFees;
+        totalPnlAfterFees += netPnl;
+
+        if (pnl >= 0) { // Consider breakeven a win for gross win rate calc
             numWins++;
         }
-        console.log(`TRADE LOG: ${type} - Entry: $${entryPrice.toFixed(2)}, Exit: $${exitPrice.toFixed(2)}, P&L: $${pnl.toFixed(2)} (${status})`);
+        if (netPnl >= 0) { // Win after fees
+            numWinsAfterFees++;
+        }
+
+        console.log(`TRADE LOG: ${type} - Entry: $${entryPrice.toFixed(2)}, Exit: $${exitPrice.toFixed(2)}, Gross P&L: $${pnl.toFixed(2)}, Fees: -$${totalFees.toFixed(2)}, Net P&L: $${netPnl.toFixed(2)} (${status})`);
         updateUI();
     }
 
@@ -482,15 +613,20 @@
 
         overlayElement.innerHTML = `
             <div id="bot-header" style="font-weight: bold; text-align: center; margin-bottom: 10px; cursor: move;">
-                HFT Scalper Bot (Simulated) - powered by <a href="https://simul8or.com/" target="_blank" style="color:azure;">simul8or</a>
+                HFT Scalper Bot (Simulated) - ${COIN_CONFIG.name}
+            </div>
+            <div style="text-align: center; font-size: 11px; color: orange; margin-bottom: 8px;">
+                Trading Fee: ${(EXCHANGE_FEE_PERCENT * 100).toFixed(2)}% per trade | Profit Target: ${(PROFIT_TARGET_PERCENT * 100).toFixed(2)}%
             </div>
             <div id="current-price-display">Current Price: $0.00</div>
             <div id="bot-status-display">Status: STOPPED</div>
             <div id="position-info-display">Position: None</div>
             <div id="pnl-stats-display">
-                Total P&L: $0.00 <br>
-                Trades: 0 (Wins: 0) <br>
-                Win Rate: 0.00%
+                <span style="color: grey;">Gross P&L:</span> $0.00 <br>
+                <span style="color: orange;">Total Fees:</span> -$0.00 (0.0%) <br>
+                <span style="color: lawngreen; font-weight: bold;">Net P&L:</span> $0.00 <br>
+                Trades: 0 | Wins: 0 (0 after fees) <br>
+                Win Rate: 0.00% (0.00% after fees)
             </div>
             <div id="controls" style="display: flex; gap: 10px; margin-top: 10px;">
                 <button id="start-bot-btn" style="flex: 1; padding: 8px; background-color: #005000; color: lawngreen; border: 1px solid #0f0; border-radius: 5px; cursor: pointer; font-family: inherit; font-size: inherit;">START</button>
