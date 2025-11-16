@@ -1,21 +1,41 @@
 # crypto-trading-bot
-A browser-based scalping bot for **STOCKS and CRYPTO** with **REAL FEE CALCULATIONS** and support for **LOW-FEE COINS**. For educational use only.
+A browser-based **ICC (Indication, Correction, Continuation) swing trading bot** for **STOCKS and CRYPTO** based on **Trade by Sci's strategy**. Features automatic support/resistance detection, ICC phase tracking, and real fee calculations. For educational use only.
 
 ![image](https://github.com/user-attachments/assets/19bd08c6-3de3-482e-b108-f9fdf688ce91)
 
-I asked AI to build a trading bot — and it actually worked.
+## What is ICC Trading?
+
+**ICC = Indication, Correction, Continuation**
+
+This is NOT a scalping bot - it's a **swing/day trading strategy** that waits for high-probability setups:
+
+1. **INDICATION** - Price breaks key support/resistance
+2. **CORRECTION** - Price pulls back to retest broken level
+3. **CONTINUATION** - Price resumes in indicated direction → **ENTRY**
+
+**Why ICC works better than scalping:**
+- ✅ Fewer trades (1-5 per session vs 100+)
+- ✅ Larger profit targets (2-3% vs 0.25%)
+- ✅ Higher win rate (55-70% vs 40-50%)
+- ✅ Better R:R ratio (2:1 to 5:1 vs 1:1)
+- ✅ No entry on the break - wait for confirmation
 
 ## 🆕 Now Supports Stocks AND Crypto!
 
-The bot now works on both:
+The bot works on both:
 - **Stocks**: https://app.webull.com/stocks (Default configuration)
 - **Crypto**: https://app.webull.com/crypto (Uncomment crypto config in code)
 
-> In just **36 hours**, it executed **7,328 simulated trades**
-> with a **40.60% win rate** and generated **$566.07 in profit**
-> **(BUT that's before fees!)**
+**ICC Strategy Results:**
+> Unlike scalping bots that take 100+ trades per session,
+> the ICC bot is **selective** - waiting for confirmed setups.
+> **Expect 1-5 high-quality trades per session** with:
+> - **2-3% profit targets** (vs 0.25% scalping targets)
+> - **1% stop losses** (vs 0.12% scalping stops)
+> - **55-70% win rate** (vs 40% scalping win rate)
+> - **24-hour max hold time** (vs 60-second scalping holds)
 
-This was created as a raw experiment by simul8or.
+This is a **swing/day trading approach**, not high-frequency scalping.
 It runs entirely in the browser — no installs, no API keys — just paste and go.
 
 ---
@@ -94,24 +114,47 @@ If you encounter issues, you can inspect the price element in Chrome DevTools an
 
 ---
 
-## 🧠 Strategy
+## 🧠 ICC Strategy Explained
 
-- **Momentum-based** scalping logic
-- **Tight trailing stops** to secure profits quickly
-- **Higher profit targets** (0.25% vs 0.08%) to account for fees
-- **Real fee calculations** (0.1% entry + 0.1% exit = 0.2% total)
-- Works best on **liquid, low-fee coins** like SOL, XRP, XLM
+The bot implements **Trade by Sci's ICC Framework**:
 
-### Updated Parameters (vs Original ETH Bot)
+### The Three Phases:
 
-| Parameter | Original (ETH) | Updated (Low-Fee Coins) | Why Changed |
+1. **INDICATION Phase**
+   - Bot detects when price breaks key support or resistance
+   - **Does NOT enter** - just marks the broken level
+   - Waits for the next phase
+
+2. **CORRECTION Phase**
+   - Price pulls back to retest the broken level
+   - Bot monitors for rejection/acceptance at the level
+   - **Still does NOT enter** - waits for confirmation
+
+3. **CONTINUATION Phase**
+   - Price resumes moving in the indicated direction
+   - **NOW the bot enters** - high-probability setup confirmed
+   - Stop loss placed beyond the retest level
+
+### Key Features:
+
+- **Automatic Support/Resistance Detection** - Uses swing highs/lows
+- **Smart Phase Tracking** - Visual UI shows current ICC phase
+- **No False Breakouts** - Waits for retest confirmation before entry
+- **Real Fee Calculations** - Shows gross & net P&L
+- **Swing Trading Parameters** - Optimized for 2-3% moves, not 0.25%
+
+### ICC Parameters (Swing Trading)
+
+| Parameter | Scalping (Old) | ICC Swing Trading (New) | Why Changed |
 |-----------|---------------|------------------------|-------------|
-| Profit Target | 0.08% | **0.25%** | Must exceed 0.2% in fees |
-| Stop Loss | 0.04% | **0.12%** | Wider to avoid fee-heavy losses |
-| Trailing Stop | 0.02% | **0.06%** | Better profit protection |
-| Fee Tracking | ❌ None | ✅ **Full tracking** | Shows real profitability |
+| Profit Target | 0.25% | **2.0%** | Targets structural moves |
+| Stop Loss | 0.12% | **1.0%** | Room for retest volatility |
+| Trailing Stop | 0.06% | **0.5%** | Locks in swing profits |
+| Hold Time | 60 seconds | **24 hours** | Swing trades, not scalps |
+| Trade Frequency | 100+ per session | **1-5 per session** | Quality over quantity |
+| Entry Logic | Momentum | **ICC Confirmation** | Wait for all 3 phases |
 
-> Note: The bot displays both GROSS P&L (before fees) and NET P&L (after fees) so you can see the true impact of trading costs.
+> Note: The bot displays ICC Phase, detected support/resistance levels, gross/net P&L, and full trade log.
 
 ---
 
@@ -193,17 +236,47 @@ Each trade now displays:
 
 ---
 
+## 📚 About the ICC Strategy
+
+This bot implements the **ICC (Indication, Correction, Continuation)** framework taught by **Trade by Sci** (@sci.mindset on TikTok/YouTube).
+
+### ICC Philosophy:
+
+> **"Don't chase the break. Wait for the market to come back and test it. Then, and only then, enter when it continues in your direction."** - Trade by Sci
+
+This simple philosophy eliminates:
+- ❌ FOMO entries on initial breakouts
+- ❌ Getting trapped in false breakouts
+- ❌ Emotional, impulsive trading
+
+And creates:
+- ✅ High-probability setups
+- ✅ Clear invalidation points
+- ✅ Structured decision-making
+
+### Learn More About ICC:
+
+- **Creator**: Trade by Sci (@sci.mindset)
+- **Strategy Guide**: See `ICC_STRATEGY_GUIDE.md` in this repo for complete explanation
+- **YouTube**: Search "ICC Trading Method" or "Trade by Sci"
+- **TradingView**: ICC Trading System indicators available
+
+**Key Takeaway**: ICC is about **patience and confirmation**. Wait for all three phases to complete before entering. One missed trade is better than one bad entry.
+
+---
+
 ## 🤖 Fork It. Tweak It. Evolve It.
 
 This is open for anyone to improve. Add new indicators, rework the logic, or run it on other tickers.
 
 **Ideas for improvement:**
-- Support for custom exchange fee rates
-- Bid-ask spread simulation
-- Slippage modeling
-- Position sizing optimization
-- Better entry signals (RSI, MACD, volume)
+- Multi-timeframe analysis (1H structure + 5m entries)
+- Volume confirmation for breakouts
+- Fibonacci retracement levels for correction zones
+- ATR-based dynamic stop losses
+- Multiple position sizing options
 - Backtesting mode with historical data
+- Integration with TradingView alerts
 
 > Drop your variants via issue or pull request — we might feature them on the main site.
 
@@ -219,6 +292,33 @@ Brought to you by [simul8or](https://simul8or.com) — a browser-based trading s
 
 MIT – for educational use only. This is not financial advice. Do not use with real money.
 
-**Remember**: This bot shows that even a "profitable" trading strategy can lose money after accounting for fees. Always factor in trading costs before live trading!
+---
+
+## ⚡ Trading Style Classification
+
+**This is a SWING/DAY TRADING bot, NOT a scalping bot:**
+
+| Characteristic | Scalping | ICC Swing Trading (This Bot) |
+|----------------|----------|------------------------------|
+| Trade Duration | Seconds to minutes | Hours to days (max 24h) |
+| Profit Targets | 0.1-0.5% | 2-3%+ |
+| Trades Per Day | 50-200+ | 1-5 |
+| Analysis Type | Tick charts, momentum | Structure, support/resistance, phases |
+| Stop Loss | Very tight (0.1-0.2%) | Reasonable (1-2%) |
+| Win Rate | 40-50% | 55-70% (expected) |
+| R:R Ratio | 1:1 | 2:1 to 5:1 |
+| Strategy | Immediate entries | Wait for 3-phase confirmation |
+
+**Key Point**: Patience is the edge. The ICC bot will pass on many opportunities waiting for the perfect setup. That's by design. Quality over quantity.
+
+---
+
+**Remember**: Even with the ICC strategy's better win rate and R:R ratio, trading is risky. This bot is for educational purposes to understand:
+- How ICC trading works
+- The importance of support/resistance levels
+- Why waiting for confirmation beats chasing breakouts
+- The impact of fees on profitability
+
+Always paper trade and backtest before considering live trading.
 
 

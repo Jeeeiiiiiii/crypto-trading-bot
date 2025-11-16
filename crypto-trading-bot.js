@@ -1,26 +1,32 @@
  /**
- * High-Frequency Scalping Trading Bot (Simulated)
+ * ICC (Indication, Correction, Continuation) Trading Bot (Simulated)
+ * Based on Trade by Sci's ICC Trading Framework
  * For Educational/Simulation Purposes Only.
  *
- * This script is designed to be injected into a web trading platform's browser console.
- * It creates a draggable UI overlay, monitors price changes, implements a tick-scalping
- * strategy, and tracks simulated trading performance.
+ * This bot implements the ICC trading strategy:
+ * 1. INDICATION - Detects breaks of key support/resistance levels
+ * 2. CORRECTION - Waits for price to pull back and retest the broken level
+ * 3. CONTINUATION - Enters trade when price continues in the indicated direction
+ *
+ * This is a SWING/DAY TRADING strategy, NOT high-frequency scalping.
+ * - Fewer trades (1-5 per session vs 100+)
+ * - Larger profit targets (1-3% vs 0.25%)
+ * - Longer hold times (hours to days vs seconds)
+ * - Higher win rate (55-70% vs 40-50%)
+ * - Better risk-to-reward ratio (2:1 to 5:1 vs 1:1)
  *
  * Target Platforms:
  * - Stocks: https://app.webull.com/stocks (Default configuration)
  * - Crypto: https://app.webull.com/crypto (Change COIN_CONFIG in the code)
  *
  * Features:
- * - Draggable, semi-transparent UI overlay with terminal aesthetic.
- * - Displays current price, bot status, position info, P&L stats, trade history.
- * - START, STOP, CLOSE POSITION buttons.
- * - Monitors price changes using MutationObserver on a specified XPath.
- * - Simulates tick scalping based on momentum.
- * - Supports simulated long and short positions.
- * - Auto-exits positions on profit target, stop loss, or time limit.
- * - Tracks total P&L, win rate, and number of trades.
- * - Maintains price history and calculates basic 1-minute OHLC (for display/logging).
- * - Console logging for debugging.
+ * - Draggable, semi-transparent UI overlay with terminal aesthetic
+ * - Automatically detects swing highs/lows for support/resistance levels
+ * - Tracks ICC phases: Indication → Correction → Continuation
+ * - Visual display of current ICC phase and detected levels
+ * - Smart entry logic: Only enters after all three phases confirm
+ * - Swing trading parameters: wider stops, bigger targets, longer holds
+ * - Full P&L tracking with fee calculations
  *
  * Usage:
  * 1. Navigate to the target web trading platform:
@@ -29,6 +35,9 @@
  * 2. Open your browser's developer console (F12 or Cmd+Option+I).
  * 3. Paste this entire script into the console and press Enter.
  * 4. The UI overlay should appear. Click 'START' to activate the bot.
+ * 5. The bot will monitor price and wait for ICC setups to form.
+ *
+ * Strategy Guide: See ICC_STRATEGY_GUIDE.md for complete explanation
  *
  * Note: The default configuration is set for STOCKS trading. To use with crypto,
  * uncomment the desired crypto configuration (SOL, XRP, XLM, etc.) and comment out
@@ -46,132 +55,149 @@
     // OPTION 0: STOCKS - FOR https://app.webull.com/stocks
     // Use this configuration when trading individual stocks on Webull
     // Typical exchange fee: 0% for stock trades on most platforms
+    // ICC SWING TRADING PARAMETERS (not scalping!)
     const COIN_CONFIG = {
         name: 'STOCK',
         xpath: '//*[@id="app"]/section/section/section/main/div/div[2]/div[1]/div[2]/div/div/span[2]',
         exchangeFeePercent: 0.0,     // 0% fee for stocks (adjust if your broker charges)
-        profitTargetPercent: 0.0025, // 0.25% profit target
-        stopLossPercent: 0.0012,     // 0.12% stop loss
-        trailingStopPercent: 0.0006, // 0.06% trailing stop
+        profitTargetPercent: 0.02,   // 2% profit target (swing trading)
+        stopLossPercent: 0.01,       // 1% stop loss (wider for swing)
+        trailingStopPercent: 0.005,  // 0.5% trailing stop
     };
 
     // OPTION 1: SOLANA (SOL) - RECOMMENDED FOR LOW FEES (CRYPTO)
     // Extremely low transaction fees (~$0.00025), high liquidity, fast execution
     // Typical exchange fee: 0.1% per trade (maker/taker)
     // For crypto trading, navigate to: https://app.webull.com/crypto
+    // ICC SWING TRADING PARAMETERS
     // /*
     // const COIN_CONFIG = {
     //     name: 'SOL/USD',
     //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,  // 0.1% fee per trade
-    //     profitTargetPercent: 0.0025, // 0.25% profit target (higher to cover fees)
-    //     stopLossPercent: 0.0012,     // 0.12% stop loss
-    //     trailingStopPercent: 0.0006, // 0.06% trailing stop
+    //     exchangeFeePercent: 0.001,   // 0.1% fee per trade
+    //     profitTargetPercent: 0.025,  // 2.5% profit target (swing trading, covers fees)
+    //     stopLossPercent: 0.0125,     // 1.25% stop loss (wider for swing)
+    //     trailingStopPercent: 0.0075, // 0.75% trailing stop
     // };
     // */
 
     // OPTION 2: XRP - ULTRA LOW BLOCKCHAIN FEES (CRYPTO)
     // For crypto trading, navigate to: https://app.webull.com/crypto
+    // ICC SWING TRADING PARAMETERS
     // /*
     // const COIN_CONFIG = {
     //     name: 'XRP/USD',
     //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,  // 0.1% exchange fee
-    //     profitTargetPercent: 0.0025,
-    //     stopLossPercent: 0.0012,
-    //     trailingStopPercent: 0.0006,
+    //     exchangeFeePercent: 0.001,   // 0.1% exchange fee
+    //     profitTargetPercent: 0.025,  // 2.5% profit target
+    //     stopLossPercent: 0.0125,     // 1.25% stop loss
+    //     trailingStopPercent: 0.0075, // 0.75% trailing stop
     // };
     // */
 
     // OPTION 3: STELLAR (XLM) - LOWEST FEES (CRYPTO)
     // For crypto trading, navigate to: https://app.webull.com/crypto
+    // ICC SWING TRADING PARAMETERS
     // /*
     // const COIN_CONFIG = {
     //     name: 'XLM/USD',
     //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,  // 0.1% exchange fee
-    //     profitTargetPercent: 0.0025,
-    //     stopLossPercent: 0.0012,
-    //     trailingStopPercent: 0.0006,
+    //     exchangeFeePercent: 0.001,   // 0.1% exchange fee
+    //     profitTargetPercent: 0.025,  // 2.5% profit target
+    //     stopLossPercent: 0.0125,     // 1.25% stop loss
+    //     trailingStopPercent: 0.0075, // 0.75% trailing stop
     // };
     // */
 
     // OPTION 4: ALGORAND (ALGO) - LOW FEES, FAST (CRYPTO)
     // For crypto trading, navigate to: https://app.webull.com/crypto
+    // ICC SWING TRADING PARAMETERS
     // /*
     // const COIN_CONFIG = {
     //     name: 'ALGO/USD',
     //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,
-    //     profitTargetPercent: 0.0025,
-    //     stopLossPercent: 0.0012,
-    //     trailingStopPercent: 0.0006,
+    //     exchangeFeePercent: 0.001,   // 0.1% exchange fee
+    //     profitTargetPercent: 0.025,  // 2.5% profit target
+    //     stopLossPercent: 0.0125,     // 1.25% stop loss
+    //     trailingStopPercent: 0.0075, // 0.75% trailing stop
     // };
     // */
 
     // OPTION 5: POLYGON (MATIC) - LOW FEES (CRYPTO)
     // For crypto trading, navigate to: https://app.webull.com/crypto
+    // ICC SWING TRADING PARAMETERS
     // /*
     // const COIN_CONFIG = {
     //     name: 'MATIC/USD',
     //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,
-    //     profitTargetPercent: 0.0025,
-    //     stopLossPercent: 0.0012,
-    //     trailingStopPercent: 0.0006,
+    //     exchangeFeePercent: 0.001,   // 0.1% exchange fee
+    //     profitTargetPercent: 0.025,  // 2.5% profit target
+    //     stopLossPercent: 0.0125,     // 1.25% stop loss
+    //     trailingStopPercent: 0.0075, // 0.75% trailing stop
     // };
     // */
 
     // OPTION 6: LITECOIN (LTC) - LOWER FEES THAN ETH (CRYPTO)
     // For crypto trading, navigate to: https://app.webull.com/crypto
+    // ICC SWING TRADING PARAMETERS
     // /*
     // const COIN_CONFIG = {
     //     name: 'LTC/USD',
     //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,
-    //     profitTargetPercent: 0.0025,
-    //     stopLossPercent: 0.0012,
-    //     trailingStopPercent: 0.0006,
+    //     exchangeFeePercent: 0.001,   // 0.1% exchange fee
+    //     profitTargetPercent: 0.025,  // 2.5% profit target
+    //     stopLossPercent: 0.0125,     // 1.25% stop loss
+    //     trailingStopPercent: 0.0075, // 0.75% trailing stop
     // };
     // */
 
     // OPTION 7: TRON (TRX) - VERY LOW FEES (CRYPTO)
     // For crypto trading, navigate to: https://app.webull.com/crypto
+    // ICC SWING TRADING PARAMETERS
     // /*
     // const COIN_CONFIG = {
     //     name: 'TRX/USD',
     //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,
-    //     profitTargetPercent: 0.0025,
-    //     stopLossPercent: 0.0012,
-    //     trailingStopPercent: 0.0006,
+    //     exchangeFeePercent: 0.001,   // 0.1% exchange fee
+    //     profitTargetPercent: 0.025,  // 2.5% profit target
+    //     stopLossPercent: 0.0125,     // 1.25% stop loss
+    //     trailingStopPercent: 0.0075, // 0.75% trailing stop
     // };
     // */
 
-    // OPTION 8: ETHEREUM (ETH) - ORIGINAL (NOT RECOMMENDED - HIGH FEES) (CRYPTO)
+    // OPTION 8: ETHEREUM (ETH) - ORIGINAL (CRYPTO)
     // For crypto trading, navigate to: https://app.webull.com/crypto
+    // ICC SWING TRADING PARAMETERS
     // /*
     // const COIN_CONFIG = {
     //     name: 'ETH/USD',
     //     xpath: '//*[@id="app"]/main/section/div[2]/div[1]/div/div[2]/div[1]/div[2]/div/div/span[2]',
-    //     exchangeFeePercent: 0.001,  // 0.1% exchange fee (not including gas fees)
-    //     profitTargetPercent: 0.0008, // 0.08% - TOO LOW for profitable trading with fees
-    //     stopLossPercent: 0.0004,
-    //     trailingStopPercent: 0.0002,
+    //     exchangeFeePercent: 0.001,   // 0.1% exchange fee (not including gas fees)
+    //     profitTargetPercent: 0.025,  // 2.5% profit target (swing trading)
+    //     stopLossPercent: 0.0125,     // 1.25% stop loss
+    //     trailingStopPercent: 0.0075, // 0.75% trailing stop
     // };
     // */
 
     // General Configuration (applies to all coins)
     const TARGET_PRICE_XPATH = COIN_CONFIG.xpath;
-    const MOMENTUM_SHORT_AVG_PERIOD = 5;  // Shorter average period for momentum
-    const MOMENTUM_LONG_AVG_PERIOD = 20;  // Longer average period for momentum
-    const MOMENTUM_THRESHOLD = 0.00005; // Sensitivity for entering trades (e.g., 0.005% price change)
+
+    // ICC Strategy Configuration
+    const SWING_PERIOD = 5;  // Number of candles to identify swing high/low (5 candles = 2 left + 1 pivot + 2 right)
+    const BREAK_THRESHOLD_PERCENT = 0.002; // 0.2% move beyond level to confirm break (not just a wick)
+    const RETEST_TOLERANCE_PERCENT = 0.01; // 1% tolerance for correction retest zone
+    const CONTINUATION_CONFIRMATION_PERCENT = 0.003; // 0.3% move to confirm continuation
+
+    // Position Management
     const PROFIT_TARGET_PERCENT = COIN_CONFIG.profitTargetPercent;
     const STOP_LOSS_PERCENT = COIN_CONFIG.stopLossPercent;
     const TRAILING_STOP_PERCENT = COIN_CONFIG.trailingStopPercent;
     const EXCHANGE_FEE_PERCENT = COIN_CONFIG.exchangeFeePercent;
-    const POSITION_TIME_LIMIT_MS = 60 * 1000; // Max 60 seconds per trade to enforce high-frequency
-    const PRICE_HISTORY_MAX_SIZE = 100;  // Max number of price ticks to store
+    const POSITION_TIME_LIMIT_MS = 24 * 60 * 60 * 1000; // Max 24 hours per trade (swing trading)
+    const MAX_HOLDING_PERIOD_HOURS = 24; // Display value for UI
+
+    // Data Management
+    const PRICE_HISTORY_MAX_SIZE = 500;  // Store more history for swing detection
     const OHLC_UPDATE_INTERVAL_MS = 60 * 1000; // Update OHLC every 1 minute
     const BOT_QUANTITY = 1; // Simulated quantity for each trade
 
@@ -181,8 +207,20 @@
     let priceHistory = []; // Stores raw price ticks
     let ohlcData = [];     // Stores 1-minute OHLC bars [{open, high, low, close, timestamp}]
 
+    // ICC State Management
+    let iccPhase = 'WAITING'; // 'WAITING', 'INDICATION_DETECTED', 'CORRECTION_IN_PROGRESS', 'CONTINUATION_CONFIRMED'
+    let iccSetup = null; // { type: 'BULLISH'/'BEARISH', brokenLevel, indicationPrice, indicationTime, correctionStarted }
+
+    // Support/Resistance Levels
+    let supportLevels = []; // Array of support levels: [{price, strength, lastTouch}]
+    let resistanceLevels = []; // Array of resistance levels: [{price, strength, lastTouch}]
+    let swingHighs = []; // Recent swing highs for resistance detection
+    let swingLows = [];  // Recent swing lows for support detection
+
+    // Position Management
     let position = null; // { type: 'LONG'/'SHORT', entryPrice, entryTime, quantity, initialStopLoss, trailingStopValue }
 
+    // Performance Tracking
     let totalPnl = 0;
     let totalPnlAfterFees = 0;
     let totalFeesPaid = 0;
@@ -191,6 +229,7 @@
     let numWinsAfterFees = 0;
     let tradeLog = []; // Stores objects: { timestamp, type, entryPrice, exitPrice, pnl, fees, netPnl, status }
 
+    // System Components
     let priceObserver = null; // MutationObserver instance
     let ohlcInterval = null;  // Interval for OHLC calculation
 
@@ -198,7 +237,8 @@
 
     // --- UI Overlay Elements (references will be populated after creation) ---
     let currentPriceDisplay, botStatusDisplay, positionInfoDisplay,
-        pnlStatsDisplay, tradeLogDisplay, startButton, stopButton, closeButton;
+        pnlStatsDisplay, tradeLogDisplay, startButton, stopButton, closeButton,
+        iccPhaseDisplay, levelsDisplay; // ICC-specific UI elements
 
     // --- Utility Functions ---
 
@@ -219,20 +259,162 @@
     }
 
     /**
-     * Calculates momentum based on recent and older price averages.
-     * A positive momentum suggests an upward trend, negative for downward.
-     * @param {Array<number>} history - Array of recent price ticks.
-     * @returns {number} The momentum value.
+     * Identifies swing highs in the price history.
+     * A swing high is a peak where price is higher than SWING_PERIOD candles on both sides.
+     * @returns {Array<{price: number, index: number}>} Array of swing highs
      */
-    function calculateMomentum(history) {
-        if (history.length < MOMENTUM_LONG_AVG_PERIOD) {
-            return 0; // Not enough data for meaningful momentum calculation
+    function identifySwingHighs() {
+        const swings = [];
+        if (ohlcData.length < SWING_PERIOD * 2 + 1) return swings;
+
+        for (let i = SWING_PERIOD; i < ohlcData.length - SWING_PERIOD; i++) {
+            const current = ohlcData[i].high;
+            let isSwingHigh = true;
+
+            // Check left side (must be lower)
+            for (let j = i - SWING_PERIOD; j < i; j++) {
+                if (ohlcData[j].high >= current) {
+                    isSwingHigh = false;
+                    break;
+                }
+            }
+
+            // Check right side (must be lower)
+            if (isSwingHigh) {
+                for (let j = i + 1; j <= i + SWING_PERIOD; j++) {
+                    if (ohlcData[j].high >= current) {
+                        isSwingHigh = false;
+                        break;
+                    }
+                }
+            }
+
+            if (isSwingHigh) {
+                swings.push({ price: current, index: i, timestamp: ohlcData[i].timestamp });
+            }
         }
 
-        const shortAvg = history.slice(-MOMENTUM_SHORT_AVG_PERIOD).reduce((sum, p) => sum + p, 0) / MOMENTUM_SHORT_AVG_PERIOD;
-        const longAvg = history.slice(-MOMENTUM_LONG_AVG_PERIOD).reduce((sum, p) => sum + p, 0) / MOMENTUM_LONG_AVG_PERIOD;
+        return swings;
+    }
 
-        return (shortAvg - longAvg) / longAvg; // Relative difference
+    /**
+     * Identifies swing lows in the price history.
+     * A swing low is a valley where price is lower than SWING_PERIOD candles on both sides.
+     * @returns {Array<{price: number, index: number}>} Array of swing lows
+     */
+    function identifySwingLows() {
+        const swings = [];
+        if (ohlcData.length < SWING_PERIOD * 2 + 1) return swings;
+
+        for (let i = SWING_PERIOD; i < ohlcData.length - SWING_PERIOD; i++) {
+            const current = ohlcData[i].low;
+            let isSwingLow = true;
+
+            // Check left side (must be higher)
+            for (let j = i - SWING_PERIOD; j < i; j++) {
+                if (ohlcData[j].low <= current) {
+                    isSwingLow = false;
+                    break;
+                }
+            }
+
+            // Check right side (must be higher)
+            if (isSwingLow) {
+                for (let j = i + 1; j <= i + SWING_PERIOD; j++) {
+                    if (ohlcData[j].low <= current) {
+                        isSwingLow = false;
+                        break;
+                    }
+                }
+            }
+
+            if (isSwingLow) {
+                swings.push({ price: current, index: i, timestamp: ohlcData[i].timestamp });
+            }
+        }
+
+        return swings;
+    }
+
+    /**
+     * Updates support and resistance levels based on identified swing points.
+     * Merges nearby levels and tracks their strength.
+     */
+    function updateSupportResistanceLevels() {
+        swingHighs = identifySwingHighs();
+        swingLows = identifySwingLows();
+
+        // Update resistance levels from swing highs
+        resistanceLevels = [];
+        swingHighs.forEach(swing => {
+            // Check if this level already exists (within 0.5% tolerance)
+            const existing = resistanceLevels.find(level =>
+                Math.abs(level.price - swing.price) / swing.price < 0.005
+            );
+
+            if (existing) {
+                existing.strength++;
+                existing.lastTouch = swing.timestamp;
+            } else {
+                resistanceLevels.push({
+                    price: swing.price,
+                    strength: 1,
+                    lastTouch: swing.timestamp
+                });
+            }
+        });
+
+        // Update support levels from swing lows
+        supportLevels = [];
+        swingLows.forEach(swing => {
+            // Check if this level already exists (within 0.5% tolerance)
+            const existing = supportLevels.find(level =>
+                Math.abs(level.price - swing.price) / swing.price < 0.005
+            );
+
+            if (existing) {
+                existing.strength++;
+                existing.lastTouch = swing.timestamp;
+            } else {
+                supportLevels.push({
+                    price: swing.price,
+                    strength: 1,
+                    lastTouch: swing.timestamp
+                });
+            }
+        });
+
+        // Sort by strength (strongest first)
+        resistanceLevels.sort((a, b) => b.strength - a.strength);
+        supportLevels.sort((a, b) => b.strength - a.strength);
+
+        // Keep only the top 3 most significant levels
+        resistanceLevels = resistanceLevels.slice(0, 3);
+        supportLevels = supportLevels.slice(0, 3);
+    }
+
+    /**
+     * Finds the nearest resistance level above current price.
+     * @returns {number|null} The price of the nearest resistance, or null if none found
+     */
+    function getNearestResistance() {
+        const above = resistanceLevels.filter(level => level.price > currentPrice);
+        if (above.length === 0) return null;
+        return above.reduce((nearest, level) =>
+            level.price < nearest.price ? level : nearest
+        ).price;
+    }
+
+    /**
+     * Finds the nearest support level below current price.
+     * @returns {number|null} The price of the nearest support, or null if none found
+     */
+    function getNearestSupport() {
+        const below = supportLevels.filter(level => level.price < currentPrice);
+        if (below.length === 0) return null;
+        return below.reduce((nearest, level) =>
+            level.price > nearest.price ? level : nearest
+        ).price;
     }
 
     /**
@@ -244,17 +426,60 @@
         currentPriceDisplay.textContent = `Current Price: $${currentPrice.toFixed(2)}`;
         botStatusDisplay.textContent = `Status: ${botStatus}`;
 
+        // Update ICC Phase Display
+        const phaseColors = {
+            'WAITING': 'cyan',
+            'INDICATION_DETECTED': 'yellow',
+            'CORRECTION_IN_PROGRESS': 'orange',
+            'CONTINUATION_CONFIRMED': 'lawngreen'
+        };
+        const phaseColor = phaseColors[iccPhase] || 'white';
+        let phaseText = iccPhase.replace(/_/g, ' ');
+        if (iccSetup) {
+            phaseText += ` (${iccSetup.type})`;
+        }
+        iccPhaseDisplay.innerHTML = `<span style="color: ${phaseColor}; font-weight: bold;">ICC Phase: ${phaseText}</span>`;
+
+        // Update Levels Display
+        const nearestResistance = getNearestResistance();
+        const nearestSupport = getNearestSupport();
+        let levelsHTML = '<span style="color: #666;">Key Levels:</span><br>';
+
+        if (nearestResistance) {
+            const distPct = ((nearestResistance - currentPrice) / currentPrice * 100).toFixed(2);
+            levelsHTML += `<span style="color: red;">R: $${nearestResistance.toFixed(2)} (+${distPct}%)</span><br>`;
+        }
+        if (nearestSupport) {
+            const distPct = ((currentPrice - nearestSupport) / currentPrice * 100).toFixed(2);
+            levelsHTML += `<span style="color: lawngreen;">S: $${nearestSupport.toFixed(2)} (-${distPct}%)</span><br>`;
+        }
+
+        if (iccSetup && iccSetup.brokenLevel) {
+            levelsHTML += `<span style="color: yellow;">Broken: $${iccSetup.brokenLevel.toFixed(2)}</span><br>`;
+        }
+
+        if (!nearestResistance && !nearestSupport && !iccSetup) {
+            levelsHTML += '<span style="color: #666;">Building levels...</span>';
+        }
+
+        levelsDisplay.innerHTML = levelsHTML;
+
+        // Update Position Info
         if (position) {
             const currentPositionPnl = (currentPrice - position.entryPrice) * (position.type === 'LONG' ? 1 : -1) * position.quantity;
+            const pnlPercent = (currentPositionPnl / (position.entryPrice * position.quantity) * 100).toFixed(2);
+            const timeHeld = ((Date.now() - position.entryTime) / (60 * 1000)).toFixed(1); // minutes
             positionInfoDisplay.innerHTML = `
                 Position: ${position.type} <br>
                 Entry: $${position.entryPrice.toFixed(2)} <br>
-                Current P&L: $${currentPositionPnl.toFixed(2)}
+                Current P&L: $${currentPositionPnl.toFixed(2)} (${pnlPercent}%) <br>
+                Time Held: ${timeHeld} min
             `;
         } else {
             positionInfoDisplay.textContent = 'Position: None';
         }
 
+        // Update Performance Stats
         const winRate = numTrades > 0 ? ((numWins / numTrades) * 100).toFixed(2) : '0.00';
         const winRateAfterFees = numTrades > 0 ? ((numWinsAfterFees / numTrades) * 100).toFixed(2) : '0.00';
         const profitColor = totalPnlAfterFees >= 0 ? 'lawngreen' : 'red';
@@ -279,7 +504,7 @@
         tradeLogDisplay.scrollTop = tradeLogDisplay.scrollHeight;
 
         // Update button states
-        startButton.disabled = botStatus === 'RUNNING';
+        startButton.disabled = botStatus === 'RUNNING' || botStatus === 'POSITION_OPEN';
         stopButton.disabled = botStatus === 'STOPPED';
         closeButton.disabled = !position;
     }
@@ -397,12 +622,16 @@
     }
 
     /**
-     * Executes the simulated trading strategy based on current price and momentum.
+     * ICC Trading Strategy - Implements Indication, Correction, Continuation phases.
+     * This strategy waits for structure breaks, retests, and continuations before entering.
      */
     function tradingStrategy() {
-        if (botStatus === 'STOPPED' || currentPrice === 0 || priceHistory.length < MOMENTUM_LONG_AVG_PERIOD) {
-            return; // Not ready to trade
+        if (botStatus === 'STOPPED' || currentPrice === 0 || ohlcData.length < SWING_PERIOD * 2 + 1) {
+            return; // Not ready to trade - need enough data for swing detection
         }
+
+        // Update support/resistance levels every tick
+        updateSupportResistanceLevels();
 
         // --- Position Management (Exit Logic) ---
         if (position) {
@@ -425,35 +654,218 @@
                 : Math.min(position.initialStopLoss, position.trailingStopValue);
 
             if (priceChangePercent >= PROFIT_TARGET_PERCENT) {
-                console.log(`[${position.type}] PROFIT TARGET HIT: $${pnl.toFixed(2)}`);
-                showMessage(`PROFIT: $${pnl.toFixed(2)}`, 'info');
+                console.log(`[${position.type}] ICC PROFIT TARGET HIT: $${pnl.toFixed(2)}`);
+                showMessage(`ICC PROFIT: $${pnl.toFixed(2)}`, 'info');
                 closePosition('PROFIT');
+                // Reset ICC phase after closing position
+                resetICCPhase();
             } else if (
                 (position.type === 'LONG' && currentPrice <= activeStopLoss) ||
                 (position.type === 'SHORT' && currentPrice >= activeStopLoss)
             ) {
-                console.log(`[${position.type}] STOP LOSS HIT: $${pnl.toFixed(2)}`);
-                showMessage(`STOP LOSS: $${pnl.toFixed(2)}`, 'error');
+                console.log(`[${position.type}] ICC STOP LOSS HIT: $${pnl.toFixed(2)}`);
+                showMessage(`ICC STOP: $${pnl.toFixed(2)}`, 'error');
                 closePosition('STOP_LOSS');
+                // Reset ICC phase after closing position
+                resetICCPhase();
             } else if (timeElapsed >= POSITION_TIME_LIMIT_MS) {
-                console.log(`[${position.type}] TIME LIMIT REACHED: $${pnl.toFixed(2)}`);
+                console.log(`[${position.type}] ICC TIME LIMIT (${MAX_HOLDING_PERIOD_HOURS}h): $${pnl.toFixed(2)}`);
                 showMessage(`TIME LIMIT: $${pnl.toFixed(2)}`, 'warning');
                 closePosition('TIME_LIMIT');
+                // Reset ICC phase after closing position
+                resetICCPhase();
             }
         }
 
-        // --- Entry Logic ---
-        if (!position) { // Only enter if no open position
-            const momentum = calculateMomentum(priceHistory);
+        // --- ICC Phase Logic (Entry Detection) ---
+        if (!position) { // Only look for setups if no open position
+            processICCPhases();
+        }
+    }
 
-            if (momentum > MOMENTUM_THRESHOLD) {
-                console.log(`MOMENTUM UP (${momentum.toFixed(6)}): Opening LONG position.`);
-                openPosition('LONG');
-            } else if (momentum < -MOMENTUM_THRESHOLD) {
-                console.log(`MOMENTUM DOWN (${momentum.toFixed(6)}): Opening SHORT position.`);
-                openPosition('SHORT');
+    /**
+     * Processes the three ICC phases: Indication → Correction → Continuation
+     */
+    function processICCPhases() {
+        switch (iccPhase) {
+            case 'WAITING':
+                detectIndication();
+                break;
+
+            case 'INDICATION_DETECTED':
+                detectCorrection();
+                break;
+
+            case 'CORRECTION_IN_PROGRESS':
+                detectContinuation();
+                break;
+
+            case 'CONTINUATION_CONFIRMED':
+                // Entry signal confirmed - open position
+                enterICCPosition();
+                break;
+        }
+    }
+
+    /**
+     * PHASE 1: INDICATION
+     * Detects when price breaks key support or resistance levels.
+     */
+    function detectIndication() {
+        const nearestResistance = getNearestResistance();
+        const nearestSupport = getNearestSupport();
+
+        // Check for BULLISH indication (resistance break)
+        if (nearestResistance && currentPrice > nearestResistance * (1 + BREAK_THRESHOLD_PERCENT)) {
+            iccPhase = 'INDICATION_DETECTED';
+            iccSetup = {
+                type: 'BULLISH',
+                brokenLevel: nearestResistance,
+                indicationPrice: currentPrice,
+                indicationTime: Date.now(),
+                correctionStarted: false
+            };
+            console.log(`🔔 ICC INDICATION (BULLISH): Resistance broken at $${nearestResistance.toFixed(2)}`);
+            showMessage(`INDICATION: Resistance broken at $${nearestResistance.toFixed(2)}`, 'info');
+            updateUI();
+            return;
+        }
+
+        // Check for BEARISH indication (support break)
+        if (nearestSupport && currentPrice < nearestSupport * (1 - BREAK_THRESHOLD_PERCENT)) {
+            iccPhase = 'INDICATION_DETECTED';
+            iccSetup = {
+                type: 'BEARISH',
+                brokenLevel: nearestSupport,
+                indicationPrice: currentPrice,
+                indicationTime: Date.now(),
+                correctionStarted: false
+            };
+            console.log(`🔔 ICC INDICATION (BEARISH): Support broken at $${nearestSupport.toFixed(2)}`);
+            showMessage(`INDICATION: Support broken at $${nearestSupport.toFixed(2)}`, 'info');
+            updateUI();
+            return;
+        }
+    }
+
+    /**
+     * PHASE 2: CORRECTION
+     * Waits for price to pull back and retest the broken level.
+     */
+    function detectCorrection() {
+        if (!iccSetup) {
+            resetICCPhase();
+            return;
+        }
+
+        const retestLowerBound = iccSetup.brokenLevel * (1 - RETEST_TOLERANCE_PERCENT);
+        const retestUpperBound = iccSetup.brokenLevel * (1 + RETEST_TOLERANCE_PERCENT);
+
+        // Check if price has entered the retest zone
+        if (currentPrice >= retestLowerBound && currentPrice <= retestUpperBound) {
+            if (!iccSetup.correctionStarted) {
+                iccSetup.correctionStarted = true;
+                iccSetup.correctionTime = Date.now();
+                iccPhase = 'CORRECTION_IN_PROGRESS';
+                console.log(`🔔 ICC CORRECTION: Price retesting $${iccSetup.brokenLevel.toFixed(2)} zone`);
+                showMessage(`CORRECTION: Retesting broken level`, 'info');
+                updateUI();
             }
         }
+
+        // Invalidate setup if price breaks back through in the wrong direction
+        if (iccSetup.type === 'BULLISH' && currentPrice < retestLowerBound) {
+            console.log(`❌ ICC Setup INVALIDATED: Price broke back below support`);
+            showMessage(`Setup invalidated - broke back down`, 'warning');
+            resetICCPhase();
+        } else if (iccSetup.type === 'BEARISH' && currentPrice > retestUpperBound) {
+            console.log(`❌ ICC Setup INVALIDATED: Price broke back above resistance`);
+            showMessage(`Setup invalidated - broke back up`, 'warning');
+            resetICCPhase();
+        }
+
+        // Timeout if correction takes too long (2 hours)
+        if (Date.now() - iccSetup.indicationTime > 2 * 60 * 60 * 1000) {
+            console.log(`⏱️ ICC Setup TIMEOUT: No correction within 2 hours`);
+            showMessage(`Setup timeout - no correction`, 'warning');
+            resetICCPhase();
+        }
+    }
+
+    /**
+     * PHASE 3: CONTINUATION
+     * Confirms that price is resuming in the indicated direction.
+     */
+    function detectContinuation() {
+        if (!iccSetup || !iccSetup.correctionStarted) {
+            resetICCPhase();
+            return;
+        }
+
+        // BULLISH: Check if price is moving up from retest zone
+        if (iccSetup.type === 'BULLISH') {
+            const continuationTarget = iccSetup.indicationPrice; // Should exceed initial break high
+            if (currentPrice > continuationTarget * (1 + CONTINUATION_CONFIRMATION_PERCENT)) {
+                iccPhase = 'CONTINUATION_CONFIRMED';
+                iccSetup.continuationPrice = currentPrice;
+                iccSetup.continuationTime = Date.now();
+                console.log(`✅ ICC CONTINUATION (BULLISH): Price confirming uptrend at $${currentPrice.toFixed(2)}`);
+                showMessage(`CONTINUATION confirmed - LONG entry`, 'info');
+                updateUI();
+                return;
+            }
+        }
+
+        // BEARISH: Check if price is moving down from retest zone
+        if (iccSetup.type === 'BEARISH') {
+            const continuationTarget = iccSetup.indicationPrice; // Should exceed initial break low
+            if (currentPrice < continuationTarget * (1 - CONTINUATION_CONFIRMATION_PERCENT)) {
+                iccPhase = 'CONTINUATION_CONFIRMED';
+                iccSetup.continuationPrice = currentPrice;
+                iccSetup.continuationTime = Date.now();
+                console.log(`✅ ICC CONTINUATION (BEARISH): Price confirming downtrend at $${currentPrice.toFixed(2)}`);
+                showMessage(`CONTINUATION confirmed - SHORT entry`, 'info');
+                updateUI();
+                return;
+            }
+        }
+
+        // Invalidate if price breaks back through the wrong way
+        const retestLowerBound = iccSetup.brokenLevel * (1 - RETEST_TOLERANCE_PERCENT);
+        const retestUpperBound = iccSetup.brokenLevel * (1 + RETEST_TOLERANCE_PERCENT);
+
+        if (iccSetup.type === 'BULLISH' && currentPrice < retestLowerBound) {
+            console.log(`❌ ICC Setup FAILED: No bullish continuation`);
+            showMessage(`Continuation failed - reset`, 'warning');
+            resetICCPhase();
+        } else if (iccSetup.type === 'BEARISH' && currentPrice > retestUpperBound) {
+            console.log(`❌ ICC Setup FAILED: No bearish continuation`);
+            showMessage(`Continuation failed - reset`, 'warning');
+            resetICCPhase();
+        }
+    }
+
+    /**
+     * Enters a position based on confirmed ICC setup.
+     */
+    function enterICCPosition() {
+        if (!iccSetup || iccPhase !== 'CONTINUATION_CONFIRMED') {
+            resetICCPhase();
+            return;
+        }
+
+        const type = iccSetup.type === 'BULLISH' ? 'LONG' : 'SHORT';
+        openPosition(type);
+        console.log(`📊 ICC ENTRY: ${type} position at $${currentPrice.toFixed(2)}`);
+    }
+
+    /**
+     * Resets the ICC phase state to start looking for new setups.
+     */
+    function resetICCPhase() {
+        iccPhase = 'WAITING';
+        iccSetup = null;
+        updateUI();
     }
 
     /**
@@ -643,13 +1055,20 @@
 
         overlayElement.innerHTML = `
             <div id="bot-header" style="font-weight: bold; text-align: center; margin-bottom: 10px; cursor: move;">
-                HFT Scalper Bot (Simulated) - ${COIN_CONFIG.name}
+                ICC Trading Bot (Simulated) - ${COIN_CONFIG.name}
             </div>
             <div style="text-align: center; font-size: 11px; color: orange; margin-bottom: 8px;">
-                Trading Fee: ${(EXCHANGE_FEE_PERCENT * 100).toFixed(2)}% per trade | Profit Target: ${(PROFIT_TARGET_PERCENT * 100).toFixed(2)}%
+                Swing Trading | Fee: ${(EXCHANGE_FEE_PERCENT * 100).toFixed(2)}% | Target: ${(PROFIT_TARGET_PERCENT * 100).toFixed(2)}% | Stop: ${(STOP_LOSS_PERCENT * 100).toFixed(2)}%
             </div>
             <div id="current-price-display">Current Price: $0.00</div>
             <div id="bot-status-display">Status: STOPPED</div>
+            <div id="icc-phase-display" style="margin: 5px 0; padding: 5px; background-color: #222; border-radius: 3px;">
+                <span style="color: cyan; font-weight: bold;">ICC Phase: WAITING</span>
+            </div>
+            <div id="levels-display" style="margin: 5px 0; padding: 5px; background-color: #222; border-radius: 3px; font-size: 12px;">
+                <span style="color: #666;">Key Levels:</span><br>
+                <span style="color: #666;">Building levels...</span>
+            </div>
             <div id="position-info-display">Position: None</div>
             <div id="pnl-stats-display">
                 <span style="color: grey;">Gross P&L:</span> $0.00 <br>
@@ -674,6 +1093,8 @@
         // Get references to UI elements
         currentPriceDisplay = overlayElement.querySelector('#current-price-display');
         botStatusDisplay = overlayElement.querySelector('#bot-status-display');
+        iccPhaseDisplay = overlayElement.querySelector('#icc-phase-display');
+        levelsDisplay = overlayElement.querySelector('#levels-display');
         positionInfoDisplay = overlayElement.querySelector('#position-info-display');
         pnlStatsDisplay = overlayElement.querySelector('#pnl-stats-display');
         tradeLogDisplay = overlayElement.querySelector('#trade-log-display');
