@@ -1,0 +1,23 @@
+# Environment variables (contains API keys - NEVER commit!)
+.env
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+logs/
+trade_log.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test files
+test_data/

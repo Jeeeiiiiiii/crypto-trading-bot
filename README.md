@@ -1,5 +1,9 @@
 # crypto-trading-bot
-A browser-based **ICC (Indication, Correction, Continuation) swing trading bot** for **STOCKS and CRYPTO** based on **Trade by Sci's strategy**. Features automatic support/resistance detection, ICC phase tracking, and real fee calculations. For educational use only.
+An **ICC (Indication, Correction, Continuation) swing trading bot** for **STOCKS and CRYPTO** based on **Trade by Sci's strategy**. Features automatic support/resistance detection, ICC phase tracking, and real fee calculations. For educational use only.
+
+**Two Versions Available:**
+1. **🌐 Browser Simulation** (`crypto-trading-bot.js`) - Paste in browser console, simulates trades on Webull
+2. **🤖 Standalone Bot** (`icc-bot.js`) - Node.js app, connects to Binance, executes real trades (paper or live)
 
 ![image](https://github.com/user-attachments/assets/19bd08c6-3de3-482e-b108-f9fdf688ce91)
 
@@ -20,11 +24,34 @@ This is NOT a scalping bot - it's a **swing/day trading strategy** that waits fo
 - ✅ Better R:R ratio (2:1 to 5:1 vs 1:1)
 - ✅ No entry on the break - wait for confirmation
 
-## 🆕 Now Supports Stocks AND Crypto!
+## 🤖 Choose Your Version
+
+### Version 1: Browser Simulation (Beginner-Friendly)
+- **File**: `crypto-trading-bot.js`
+- **Platform**: Webull (browser-based)
+- **Trading**: Simulation only (no real money)
+- **Setup**: Paste JavaScript in browser console
+- **Best For**: Learning ICC strategy, testing without risk
 
 The bot works on both:
 - **Stocks**: https://app.webull.com/stocks (Default configuration)
 - **Crypto**: https://app.webull.com/crypto (Uncomment crypto config in code)
+
+### Version 2: Standalone Bot (Real Trading)
+- **File**: `icc-bot.js`
+- **Platform**: Binance (API connection)
+- **Trading**: Paper trading OR live trading (real money!)
+- **Setup**: Node.js application, see [TRADING_SETUP.md](TRADING_SETUP.md)
+- **Best For**: Serious traders wanting automation with real capital
+
+**Start with Paper Trading:**
+```bash
+npm install
+cp .env.example .env
+npm run paper
+```
+
+See **[TRADING_SETUP.md](TRADING_SETUP.md)** for complete setup guide!
 
 **ICC Strategy Results:**
 > Unlike scalping bots that take 100+ trades per session,
