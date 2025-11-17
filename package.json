@@ -5,8 +5,8 @@
   "main": "icc-bot.js",
   "scripts": {
     "start": "node icc-bot.js",
-    "paper": "TRADING_MODE=paper node icc-bot.js",
-    "live": "TRADING_MODE=live node icc-bot.js",
+    "paper": "cross-env TRADING_MODE=paper node icc-bot.js",
+    "live": "cross-env TRADING_MODE=live node icc-bot.js",
     "test": "node icc-bot.js --test"
   },
   "keywords": [
@@ -25,7 +25,8 @@
     "dotenv": "^16.3.1",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.3",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "cross-env": "^7.0.3"
   },
   "engines": {
     "node": ">=14.0.0"
