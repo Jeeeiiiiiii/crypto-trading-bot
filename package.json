@@ -1,0 +1,33 @@
+{
+  "name": "icc-trading-bot",
+  "version": "2.0.0",
+  "description": "ICC (Indication, Correction, Continuation) automated trading bot for crypto and stocks",
+  "main": "icc-bot.js",
+  "scripts": {
+    "start": "node icc-bot.js",
+    "paper": "TRADING_MODE=paper node icc-bot.js",
+    "live": "TRADING_MODE=live node icc-bot.js",
+    "test": "node icc-bot.js --test"
+  },
+  "keywords": [
+    "trading",
+    "bot",
+    "crypto",
+    "ICC",
+    "swing-trading",
+    "binance",
+    "automated-trading"
+  ],
+  "author": "Trade by Sci ICC Strategy",
+  "license": "MIT",
+  "dependencies": {
+    "ccxt": "^4.2.25",
+    "dotenv": "^16.3.1",
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.3",
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
